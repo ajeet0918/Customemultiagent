@@ -1,0 +1,16 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const root=path.resolve(__dirname,'..'); const pkg=require('../package.json');
+const folder=`agent-studio-${pkg.version}-linux-${process.arch}`;const output=path.join(root,'dist',folder);
+if(process.platform!=='linux')throw new Error('Run this packaging script on Linux.');
+fs.mkdirSync(path.join(root,'dist'),{recursive:true});
+if(fs.existsSync(output)) fs.rmSync(output,{recursive:true,force:true});
+fs.cpSync(path.dirname(require('electron')),output,{recursive:true});
+const destination=path.join(output,'resources','app');fs.mkdirSync(destination,{recursive:true});
+for(const name of ['src','assets','package.json','README.md','AGENTS.md'])fs.cpSync(path.join(root,name),path.join(destination,name),{recursive:true});
+fs.renameSync(path.join(output,'electron'),path.join(output,'agent-studio'));
+fs.writeFileSync(path.join(output,'Agent Studio.desktop'),`[Desktop Entry]\nType=Application\nName=Agent Studio\nComment=Build with your choice of AI models\nExec=agent-studio\nIcon=agent-studio\nTerminal=false\nCategories=Development;IDE;\n`);
+const archive=path.join(root,'dist',`${folder}.tar.gz`);
+const result=spawnSync('tar',['-czf',archive,'-C',path.join(root,'dist'),folder],{stdio:'inherit'});if(result.status)process.exit(result.status);
+console.log(`Linux application: ${output}/agent-studio\nPortable archive: ${archive}`);

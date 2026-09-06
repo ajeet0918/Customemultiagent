@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><title>Agent Studio</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brandmark">a<span>✳</span></span><div>agent studio<small>YOUR LOCAL WORKSPACE</small></div></div>
+    <button id="new-chat" class="new-chat"><span>＋</span> New conversation <kbd>Ctrl N</kbd></button>
+    <nav><button class="nav-item active" data-view="workspace"><span>▦</span> Workspace</button><button class="nav-item" data-view="agents"><span>♧</span> Agents <span class="nav-count" id="agent-count">3</span></button><button class="nav-item" data-view="providers"><span>⌁</span> Providers</button></nav>
+    <div class="section-label">PROJECTS <button id="add-project" title="Open project folder" aria-label="Open project folder">＋</button></div>
+    <div id="projects" class="project-list"></div>
+    <button id="create-project" class="subtle sidebar-create">＋ Create a project</button>
+    <div class="section-label recent-label">RECENT CONVERSATIONS</div><div id="conversations" class="conversation-list"></div>
+    <div class="sidebar-bottom"><span class="local-dot"></span><div>Runs on your machine<small>Your projects stay in your control</small></div><span>↗</span></div>
+  </aside>
+  <main>
+    <header><div class="breadcrumb"><span id="header-view">Workspace</span><span>/</span><strong id="header-project">agent-studio</strong></div><div class="header-actions"><span class="local-pill"><i></i> Local</span><button class="icon-button" id="toggle-files" title="Toggle project files" aria-label="Toggle project files">▥</button><button class="icon-button" id="help" title="Getting started" aria-label="Getting started">?</button></div></header>
+    <div id="workspace-view" class="workspace view">
+      <div class="conversation-area">
+        <div id="welcome" class="welcome">
+          <div class="eyebrow"><span></span> A LITTLE LESS FRICTION. A LOT MORE BUILDING.</div>
+          <h1>Your ideas.<br>Your models. <em>Your workspace.</em></h1>
+          <p>A focused place to build with AI. Bring a project, choose an agent,<br>and make something that matters.</p>
+          <div class="quick-actions"><button data-prompt="Explore this project and explain its structure and how to run it."><span class="card-icon green">⌘</span><strong>Understand a project</strong><small>Find your way around the code</small><b>↗</b></button><button data-prompt="Help me implement a new feature. First inspect the project and ask what I want to build."><span class="card-icon peach">◇</span><strong>Build something new</strong><small>Take an idea to working code</small><b>↗</b></button><button data-prompt="Review this project for concrete bugs and missing tests. Read the relevant files and report prioritized findings."><span class="card-icon purple">◎</span><strong>Get a second look</strong><small>Review, refine, and improve</small><b>↗</b></button></div>
+          <div id="connect-banner" class="connect-banner"><div class="provider-symbol">⌁</div><div><strong>One connection. More possibilities.</strong><p>Connect Experiential Labs to discover the models available to you.</p></div><button id="connect-provider">Connect provider <span>→</span></button></div>
+        </div>
+        <div id="messages" class="messages" hidden></div>
+        <div id="run-status" class="run-status" role="status"></div>
+        <div class="composer-wrap"><div id="attachment" class="attachment" hidden></div><form id="composer" class="composer"><textarea id="prompt" rows="3" placeholder="What would you like to build?" aria-label="Message your agent"></textarea><div class="composer-bottom"><div class="composer-selects"><select id="agent-select" aria-label="Agent"></select><span class="select-divider"></span><select id="provider-select" aria-label="Provider"></select><select id="model-select" aria-label="Model"></select></div><button type="button" id="stop" class="stop" hidden>■ Stop</button><button id="send" type="submit" class="send" title="Send message" aria-label="Send message">↑</button></div></form><div class="composer-caption"><span id="permission-caption">Edits and commands ask for approval</span><span>Enter to send <b>·</b> Shift + Enter for a new line</span></div></div>
+      </div>
+      <aside id="file-panel" class="file-panel"><div class="file-heading"><span>PROJECT FILES</span><button id="refresh-files" title="Refresh files" aria-label="Refresh files">↻</button></div><div class="file-project"><span>▱</span><strong id="file-project-name"></strong><button id="reveal-project" title="Open in file manager" aria-label="Open in file manager">↗</button></div><div id="file-breadcrumb"></div><div id="files" class="files"></div><div class="file-footer">Only files your agent reads are sent<br>to your selected model provider.</div></aside>
+    </div>
+    <section id="agents-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">YOUR TEAM, YOUR WAY</div><h1>An agent for every kind of work.</h1><p>Give each agent a purpose, instructions, and the right level of access.</p><button id="new-agent" class="primary">＋ Create agent</button></div><div id="agent-cards" class="agent-grid"></div><div class="info-note">Agents use the model selected in your conversation. Switch models anytime while keeping the same agent instructions.</div></section>
+    <section id="providers-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">BRING YOUR MODELS</div><h1>More choice. One workspace.</h1><p>Connect Experiential Labs or another OpenAI-compatible model server.</p><button id="new-provider" class="primary">＋ Add provider</button></div><div id="provider-cards"></div><div class="info-note"><strong>Using free models?</strong> Check current promotions and limits in the provider catalog before making requests. Model discovery does not confirm that usage is free. <button data-external="models" class="text-link">Open catalog ↗</button></div><div id="storage-note" class="info-note"></div></section>
+  </main>
+</div>
+<dialog id="modal"><div id="modal-content"></div></dialog><div id="toast" class="toast" role="status" hidden></div>
+<script src="app.js"></script>
+</body></html>

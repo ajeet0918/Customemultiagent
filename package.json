@@ -1,0 +1,22 @@
+{
+  "name": "agent-studio",
+  "productName": "Agent Studio",
+  "version": "0.1.0",
+  "description": "A local Linux coding workspace with multiple AI models and custom agents.",
+  "private": true,
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test --test-isolation=none --test-reporter=spec tests/*.test.cjs",
+    "check": "node scripts/check.cjs",
+    "test:desktop": "node scripts/desktop-test.cjs",
+    "package": "node scripts/package.cjs",
+    "install:launcher": "node scripts/install-launcher.cjs"
+  },
+  "devDependencies": {
+    "electron": "42.3.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

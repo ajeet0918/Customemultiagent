@@ -1,0 +1,11 @@
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+if (root.includes('"') || root.includes('\n') || root.includes('%')) throw new Error('Move the project to a path without quotes, newlines or percent signs before installing the launcher.');
+const directory = path.join(os.homedir(), '.local', 'share', 'applications');
+const file = path.join(directory, 'agent-studio.desktop');
+const content = `[Desktop Entry]\nType=Application\nVersion=1.0\nName=Agent Studio\nComment=Build with multiple AI models and your own agents\nExec="${root}/launch.sh"\nPath=${root}\nIcon=${root}/assets/icon.png\nTerminal=false\nCategories=Development;IDE;\nStartupWMClass=Agent Studio\n`;
+if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes(root)) throw new Error('An unrelated Agent Studio launcher already exists. Preserve or rename it first.');
+fs.mkdirSync(directory, { recursive: true }); fs.writeFileSync(file, content, { mode: 0o755 });
+console.log(`Installed Linux application-menu launcher: ${file}`);
