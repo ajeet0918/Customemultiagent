@@ -4,6 +4,19 @@ A Linux desktop workspace for coding with multiple AI models. Bring an Experient
 
 ![Agent Studio desktop](docs/desktop-preview.png)
 
+## New in 0.2.0
+
+- **Settings:** chat and code font sizes, reading font, interface scale, light/dark/system themes, reduced motion, send shortcut, and startup screen.
+- **Standalone chat:** a dedicated Chat entry and conversation context selector, with no project file or shell access.
+- **Standalone models:** connect one exact model ID with its own compatible API URL and key, without loading a catalog.
+- **Visual model connections:** automatic colored badges, selectable badge styles, and uploaded PNG/JPEG/WebP logos.
+- **MCP tools:** connect local stdio or remote Streamable HTTP servers, discover tools, opt in per conversation, and approve every tool call.
+- **Features & help:** an in-app overview with shortcuts to each feature.
+
+Existing agents, projects, provider credentials, and conversations are preserved by the version-2 workspace migration. Settings and the Chat companion are added automatically. Restart the application after updating the source.
+
+![Standalone chat](docs/chat-preview.png)
+
 ## Run
 
 Requires Linux x64 (or a matching Electron build), Node.js 22 or newer, npm, and a graphical desktop.
@@ -47,6 +60,48 @@ Experiential Labs currently advertises free promotions on some models, including
 
 If a model does not support tools, edit the provider and disable **Enable agent tools** for chat-only requests. You can add a second provider profile pointing at the same base URL if you want separate chat-only and tool-enabled configurations.
 
+## Chat without a project
+
+Click **Chat** in the sidebar. Choose a model and send a message. The app starts here by default; change that under **Settings → Chat & behavior**. Use the selector above the composer to start a new conversation with a project or without one. Changing context starts a new conversation; your previous history stays saved.
+
+Standalone chats have no built-in file, search, or shell tools. External MCP tools remain off until you explicitly enable them for that conversation. An enabled external server may itself access files or services according to its own permissions, and each call is reviewed before execution.
+
+## Connect one standalone model
+
+1. Open **Providers → Add standalone model**.
+2. Enter a display name, the exact model ID, the API base URL, and your API key (optional for loopback local servers).
+3. Choose an icon style, or upload a PNG/JPEG/WebP logo smaller than 250 KB.
+4. Save and click **Chat with model**.
+
+Standalone model connections skip `/models` discovery entirely. They use `/chat/completions` at your configured OpenAI-compatible base URL. They default to chat-only; enable tools under Advanced connection options if the model supports them. Native non-compatible provider APIs are not adapted in this release.
+
+Built-in badges are visual identifiers, not official provider logos. Upload an official logo you are entitled to use if you want exact branding. Images stay local; the app does not fetch external logos while you chat.
+
+## Personalize the app
+
+Open **Settings → Appearance** to preview chat text sizes from 12–22 px, code sizes from 11–20 px, system/serif/monospace reading fonts, and light/dark/system themes. Interface scale ranges from 90–125%. Click **Save preferences** to retain the settings. Interface scale is applied on save; the other appearance changes preview immediately. Reset affects only the open section.
+
+**Chat & behavior** selects the startup screen and Enter versus Ctrl/Command+Enter for sending. **Features & help** explains the capabilities and links to their controls. Preferences are local and survive restarts.
+
+![Appearance settings](docs/settings-preview.png)
+
+## MCP connections
+
+1. Open **Settings → MCP connections → Add MCP server**.
+2. For a **local server**, enter its executable and a JSON array of arguments. The executable/server must already be installed. Keep API credentials in the separate environment-variables JSON field, not in command arguments.
+3. For a **remote server**, enter a Streamable HTTP URL and, if needed, its Bearer token. HTTPS is required except on loopback.
+4. Save, then click **Connect** and review the executable or endpoint. Saving alone does not launch a server. Local servers run with your Linux user's permissions, from your home directory.
+5. Expand **available tools** to inspect the connected tool catalog.
+6. In a conversation, choose a tool-enabled model and an agent with approval-based access, then enable **MCP tools** above the composer. Every external call shows the server, tool, and arguments for approval.
+
+Read-only agents never receive MCP tools. Every new conversation starts with MCP off. Connections do not start automatically at app launch. Configurations survive a restart, but you must reconnect intentionally. Server credentials use the existing keyring/session-only vault and are not returned in saved UI state.
+
+The official `@modelcontextprotocol/client` v2 SDK handles stdio and Streamable HTTP with its default legacy-compatible initialization. This release supports tool listing and calls with text/JSON results. It does not implement browser OAuth, legacy HTTP+SSE transport, resource browsing, MCP prompt templates, sampling, or interactive elicitation. For servers requiring those features, use a compatible server configuration or wait for support.
+
+Connections time out after 20 seconds, calls after 60 seconds. A maximum of 64 external tools can be enabled. Disconnect cancels pending connection work; Stop cancels the client request, though a remote server may already have performed an approved action. Server stderr is drained without displaying potentially sensitive logs. Redirects and cross-origin credential forwarding are blocked.
+
+Protocol and SDK references: [MCP local servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers), [official MCP client SDK](https://github.com/modelcontextprotocol/typescript-sdk).
+
 ## Add your own agents
 
 1. Open **Agents → Create agent**.
@@ -68,7 +123,8 @@ Included agents:
 
 | Agent | Purpose | Access |
 | --- | --- | --- |
-| Builder | Implement and validate code changes | Read, propose writes, request commands |
+| Chat companion | General questions, writing and brainstorming | No project tools in standalone chat; optional approved MCP |
+| Builder | Implement and validate code changes | Read, propose writes, request commands; optional approved MCP |
 | Reviewer | Identify bugs and missing tests | Read only |
 | Planner | Understand architecture and plan work | Read only |
 
@@ -84,7 +140,7 @@ Agent definitions live locally in this app. Experiential Labs supplies model inf
 - Every agent write presents current and proposed content for review. Every command presents its exact text and working directory before execution.
 - **Stop** cancels network activity and terminates an active command's process group.
 - Conversations persist across restarts. Use **Export** for Markdown or **Delete** to remove a conversation.
-- **Ctrl+N** starts a conversation. **Enter** sends; **Shift+Enter** adds a line.
+- **Ctrl+N** starts a conversation. Sending defaults to **Enter**, or choose **Ctrl/Command+Enter** in Settings. **Shift+Enter** adds a line.
 
 To add this source folder as a project in the **Codex desktop app**, use Codex's **Add project / Open folder** control and select `/home/ajeet/Desktop/Project/agent-studio`. Agent Studio and Codex maintain separate project lists.
 
@@ -97,7 +153,7 @@ Use **Providers → Add provider** and choose a preset or enter a compatible URL
 - LM Studio: `http://localhost:1234/v1` (start its local server separately)
 - Custom gateway: its HTTPS OpenAI-compatible `/v1` base URL
 
-Discover models or enter an exact model ID manually. Remote HTTP URLs and redirects are rejected to protect API credentials. Direct native Anthropic/Gemini API protocols are not implemented; use those models through a compatible gateway.
+Discover models or enter an exact model ID manually. Catalog loading leaves the model selection empty unless you already configured a default; explicitly choose a model before sending. Remote HTTP URLs and redirects are rejected to protect API credentials. Direct native Anthropic/Gemini API protocols are not implemented; use those models through a compatible gateway.
 
 ## Storage and execution boundaries
 
@@ -130,11 +186,13 @@ src/core/agent.cjs       Bounded tool-call loop and approval gates
 src/core/workspace.cjs   Project file tools and command execution
 src/core/store.cjs       Atomic local workspace persistence
 src/core/vault.cjs       OS-backed credential encryption / session fallback
+src/core/settings.cjs    Validated preferences and defaults
+src/core/mcp.cjs         MCP connections, discovery, calls and cleanup
 src/renderer/            Desktop interface
 scripts/                 Checks, desktop integration and Linux packaging
 ```
 
-The current release runs one agent task at a time and has a 12-round tool limit. It does not include multi-agent orchestration, terminal emulation, automatic updates, MCP plugins, inline editor editing, or Git worktree management. This is an independent application; it does not embed OpenAI Codex or inherit Codex account access.
+The current release runs one agent task at a time and has a 12-round tool limit. It does not include multi-agent orchestration, terminal emulation, automatic updates, inline editor editing, or Git worktree management. MCP support is limited to the tool connections described above. This is an independent application; it does not embed OpenAI Codex or inherit Codex account access.
 
 ## Troubleshooting
 
@@ -144,5 +202,8 @@ The current release runs one agent task at a time and has a 12-round tool limit.
 - **429:** wait for the provider's rate limit to reset.
 - **No models:** verify the base URL and key; use an exact manual model ID if the server has no model-list endpoint.
 - **Unsupported tools:** disable tools for that provider profile, or select a model that supports them.
+- **MCP executable not found:** use Browse to select an installed executable, or add its absolute path; desktop launchers may have a different PATH from your terminal.
+- **MCP unauthorized:** check the Bearer token; browser OAuth is not supported.
+- **MCP disabled in chat:** connect a server with tools, enable tools for the model connection, and use an approval-based agent.
 - **Context too long:** start a fresh conversation; automatic context compaction is not implemented.
 - **Linux sandbox error:** enable the distribution's supported Chromium/Electron user-namespace or sandbox configuration. The launcher deliberately does not disable Chromium's sandbox.

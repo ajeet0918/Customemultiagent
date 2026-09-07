@@ -1,6 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID: uid } = require('node:crypto');
+const { normalizeSettings } = require('./settings.cjs');
+const chatAgent = () => ({ id: 'chat', name: 'Chat companion', description: 'Ask, write, learn, and think out loud.', icon: '✦', mode: 'edit', system: 'You are a helpful conversational assistant. Answer clearly and adapt to the user. Never claim to access files or execute tools unless a tool call succeeds. If external tools are enabled, ask for approval through the tool flow.' });
 const defaultAgents = () => [
   { id: 'builder', name: 'Builder', description: 'Turn an idea into working code.', icon: '◇', mode: 'edit', system: 'You are a careful coding agent. Inspect the project before making changes. Implement complete working solutions, explain your changes and validate them. Use tools when needed. Never claim an action happened unless its tool succeeded.' },
   { id: 'reviewer', name: 'Reviewer', description: 'Find bugs, risks, and missing tests.', icon: '◎', mode: 'read', system: 'You are a code reviewer. Read relevant files and identify concrete bugs and regressions. Prioritize actionable findings, explain impact and cite file paths. You have read-only access.' },
@@ -17,6 +19,11 @@ class Store {
       this.data = { version: 1, providers: [{ id: 'experiential', name: 'Experiential Labs', baseUrl: 'https://api.experientiallabs.ai/v1', envKey: 'EXPLABS_API_KEY', models: [], model: '', tools: true }], agents: defaultAgents(), projects: initialProject ? [{ id: uid(), name: path.basename(initialProject), path: initialProject }] : [], conversations: [] };
       this.save();
     }
+    if (this.data.version < 2 && !this.data.agents.some(a => a.id === 'chat')) this.data.agents.push(chatAgent());
+    this.data.settings = normalizeSettings(this.data.settings);
+    this.data.mcpServers ||= [];
+    this.data.version = 2;
+    this.save();
   }
   save() { const temp = `${this.file}.tmp`; fs.writeFileSync(temp, JSON.stringify(this.data, null, 2), { mode: 0o600 }); fs.renameSync(temp, this.file); }
   get(collection, id) { const result = this.data[collection].find(item => item.id === id); if (!result) throw new Error(`${collection} entry not found.`); return result; }
