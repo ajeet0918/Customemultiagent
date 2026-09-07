@@ -1,7 +1,7 @@
 {
   "name": "agent-studio",
   "productName": "Agent Studio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A local Linux coding workspace with multiple AI models and custom agents.",
   "private": true,
   "main": "src/main.cjs",

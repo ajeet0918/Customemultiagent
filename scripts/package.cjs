@@ -8,7 +8,7 @@ fs.mkdirSync(path.join(root,'dist'),{recursive:true});
 if(fs.existsSync(output)) fs.rmSync(output,{recursive:true,force:true});
 fs.cpSync(path.dirname(require('electron')),output,{recursive:true});
 const destination=path.join(output,'resources','app');fs.mkdirSync(destination,{recursive:true});
-for(const name of ['src','assets','docs','package.json','package-lock.json','README.md','AGENTS.md'])fs.cpSync(path.join(root,name),path.join(destination,name),{recursive:true});
+for(const name of ['src','assets','docs','package.json','package-lock.json','README.md','AGENTS.md'])fs.cpSync(path.join(root,name),path.join(destination,name),{recursive:true,filter:source=>path.basename(source)!=='__pycache__'});
 const dependencies=spawnSync('npm',['ls','--omit=dev','--parseable','--all'],{cwd:root,encoding:'utf8'});
 if(dependencies.error||dependencies.status!==0)throw new Error('Install dependencies before packaging: '+(dependencies.error?.message||dependencies.stderr));
 const names=new Set();

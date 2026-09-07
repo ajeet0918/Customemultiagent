@@ -111,3 +111,43 @@ html[data-theme="dark"] .mcp-error { background:#422e20;color:#f2b58c;border-col
 @media(max-width:900px) { .sidebar{width:180px;padding-left:10px;padding-right:10px}.brand{font-size:17px}.brand small{font-size:7px}.file-panel{width:170px}.page{padding:24px}.settings-row{gap:15px}.settings-row select{width:170px}.composer-selects{gap:2px}.composer select{max-width:125px}.connect-banner{flex-wrap:wrap}.quick-actions{grid-template-columns:1fr}.quick-actions>button{padding:12px 15px}.quick-actions .card-icon{float:left;margin:0 12px 0 0}.welcome{padding-top:24px}.welcome h1{font-size:27px}.welcome>p{font-size:11px;margin-bottom:20px}.conversation-area{overflow:auto}.composer-wrap{position:sticky;bottom:0;background:var(--canvas);padding-top:8px}.agent-grid{grid-template-columns:1fr}.settings-section-heading{flex-direction:column}.feature-card{padding:18px} }
 :root { color:var(--ink); }
 .local-pill,.sidebar-bottom,.nav-count,.new-chat kbd,.agent-instructions,.card-footer,.modal-actions,.file-footer { border-color:var(--line); }
+
+/* Keep Settings visible below the scrolling conversation history. */
+.sidebar-footer { flex-shrink:0; margin-top:auto; padding-top:12px; }
+.sidebar-footer>.nav-item { width:100%; }
+.sidebar-footer .sidebar-bottom { margin-top:12px; padding-top:14px; padding-bottom:16px; }
+.conversation-list { min-height:0; }
+
+/* Computer workspace: clear hierarchy and visible permissions. */
+.computer-panel { margin:24px auto 0;width:100%;max-width:900px;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:0 4px 22px #10201905;flex-shrink:0; }
+.computer-panel-heading { display:flex;align-items:center;gap:14px; }
+.computer-orb { display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--soft-bg);color:var(--ink);font-size:25px;flex-shrink:0; }
+.computer-panel strong { font-size:15px;font-weight:600;letter-spacing:-.3px; }
+.computer-panel p { font-size:12px;line-height:1.6;color:var(--soft-ink);margin:7px 0 0; }
+.computer-status { margin-left:auto;white-space:nowrap;font-size:11px;padding:6px 9px;border:1px solid var(--line);border-radius:20px;color:var(--soft-ink); }
+.computer-status.live { background:var(--soft-bg);color:var(--ink); }
+.computer-capabilities { display:flex;flex-wrap:wrap;gap:9px;margin:18px 0; }
+.computer-capabilities>span { font-size:11px;color:var(--soft-ink);border:1px solid var(--line);border-radius:7px;padding:8px 10px; }
+.computer-capabilities b { margin-left:10px;color:var(--ink);font-weight:500; }
+.computer-actions { display:flex;align-items:center;gap:16px; }
+.computer-actions small { max-width:350px;color:var(--soft-ink);font-size:11px;line-height:1.6; }
+.computer-stop { background:#982f35;color:white;border-radius:7px;padding:9px 13px;font-size:12px; }
+.computer-setup { margin-top:14px;font-size:11px;color:var(--soft-ink); }
+.computer-setup summary { cursor:pointer; }
+.computer-setup code { display:block;overflow:auto;margin-top:9px;font-size:11px;padding:10px;background:var(--soft-bg);border-radius:6px; }
+.conversation-area:has(.computer-panel:not([hidden])) { overflow:auto; }
+.conversation-area:has(.computer-panel:not([hidden])) .welcome { padding:24px 0 12px; }
+.conversation-area:has(.computer-panel:not([hidden])) .welcome h1 { font-size:32px;margin:12px 0; }
+.conversation-area:has(.computer-panel:not([hidden])) .welcome>p { margin-bottom:20px; }
+.conversation-area:has(.computer-panel:not([hidden])) .composer-wrap { position:sticky;bottom:0;background:var(--canvas);padding:12px 0;margin-bottom:0;z-index:2; }
+.sidebar nav { gap:3px;margin-top:22px; }
+.nav-item { min-height:43px;transition:background .15s ease; }
+.nav-item:hover { background:var(--soft-bg);filter:none; }
+.new-chat { min-height:43px;font-weight:500; }
+.primary,.secondary { min-height:36px;border-radius:8px; }
+.provider-card { border-radius:12px; }
+.model-badge { flex-shrink:0; }
+.quick-actions>button { border-radius:12px;min-height:95px; }
+@media(max-width:1120px) { .computer-panel-heading{flex-wrap:wrap}.computer-status{margin-left:58px}.computer-actions{flex-wrap:wrap}.computer-panel{padding:16px}.computer-capabilities{gap:6px} }
+.conversation-area:has(.computer-panel:not([hidden])) .composer-wrap { position:relative; }
+.conversation-area:has(.computer-panel:not([hidden])) .messages { min-height:250px;flex:1 0 auto; }

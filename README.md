@@ -207,3 +207,9 @@ The current release runs one agent task at a time and has a 12-round tool limit.
 - **MCP disabled in chat:** connect a server with tools, enable tools for the model connection, and use an approval-based agent.
 - **Context too long:** start a fresh conversation; automatic context compaction is not implemented.
 - **Linux sandbox error:** enable the distribution's supported Chromium/Electron user-namespace or sandbox configuration. The launcher deliberately does not disable Chromium's sandbox.
+
+## Computer mode (0.3.0)
+
+Use **Computer** without a project for approved terminal commands. Connect one monitor through the Linux permission dialog for model-driven screenshots, clicks, typing, scrolling, and keyboard shortcuts. Requires an image-capable model with tools enabled. Settings stays at the bottom-left. See [Computer setup and privacy](docs/COMPUTER-USE.md).
+
+![Computer workspace](docs/computer-preview.png)

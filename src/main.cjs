@@ -9,14 +9,15 @@ const workspace = require('./core/workspace.cjs');
 const { runAgent } = require('./core/agent.cjs');
 const { normalizeSettings } = require('./core/settings.cjs');
 const { McpManager, validateServer, validateSecrets, connectionSignature } = require('./core/mcp.cjs');
+const { Computer } = require('./core/computer.cjs');
 const appVersion = require('../package.json').version;
 app.setName('Agent Studio');
 if (process.env.AGENT_STUDIO_DATA_DIR) app.setPath('userData', path.resolve(process.env.AGENT_STUDIO_DATA_DIR));
 protocol.registerSchemesAsPrivileged([{ scheme: 'studio', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
-let win, store, vault, mcp, active = null;
+let win, store, vault, mcp, computer, active = null;
 const approvals = new Map();
 const text = (value, max = 500) => { if (typeof value !== 'string' || !value.trim() || value.length > max) throw new Error('Invalid or empty text field.'); return value.trim(); };
-function snapshot() { return { ...store.data, providers: store.data.providers.map(p => ({ ...p, hasKey: !!vault.get(p) })), mcpServers: store.data.mcpServers.map(s => ({ ...s, ...mcp.status(s.id), hasSecret: !!mcp.secret(s.id) })), appVersion, secureStorage: vault.secure(), dataPath: app.getPath('userData'), activeConversationId: active?.conversationId || null }; }
+function snapshot() { return { ...store.data, providers: store.data.providers.map(p => ({ ...p, hasKey: !!vault.get(p) })), mcpServers: store.data.mcpServers.map(s => ({ ...s, ...mcp.status(s.id), hasSecret: !!mcp.secret(s.id) })), appVersion, computer: computer.snapshot(), secureStorage: vault.secure(), dataPath: app.getPath('userData'), activeConversationId: active?.conversationId || null }; }
 function emit(event) { if (win && !win.isDestroyed()) win.webContents.send('studio:event', event); }
 function guard(handler) { return async (event, data) => { if (event.sender !== win?.webContents || event.senderFrame !== win.webContents.mainFrame || !event.senderFrame.url.startsWith('studio://app/')) throw new Error('Untrusted caller.'); return handler(data); }; }
 function handle(name, fn) { ipcMain.handle(`studio:${name}`, guard(fn)); }
@@ -36,11 +37,15 @@ function approve(action, signal) {
     const finish = value => { approvals.delete(id); signal.removeEventListener('abort', abort); emit({ type: 'approval-closed', id }); resolve(value); };
     approvals.set(id, finish); signal.addEventListener('abort', abort, { once: true });
     if (signal.aborted) return finish(false);
+    if(win.isMinimized()) win.restore(); win.show(); win.focus();
     emit({ type: 'approval', id, ...action });
   });
 }
 function handlers() {
   handle('state', () => snapshot());
+  handle('connect-computer', async () => { idle(); await computer.connect(); return snapshot(); });
+  handle('disconnect-computer', () => { active?.controller.abort(); computer.disconnect(); return snapshot(); });
+
   handle('save-settings', input => { store.data.settings = normalizeSettings(input); store.save(); win.webContents.setZoomFactor(store.data.settings.interfaceScale / 100); return snapshot(); });
   handle('pick-provider-logo', async () => {
     const result = await dialog.showOpenDialog(win, { title: 'Choose a model or provider logo', properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png','jpg','jpeg','webp'] }] });
@@ -116,25 +121,28 @@ function handlers() {
   handle('external', key => { const urls = { keys: 'https://platform.experientiallabs.ai/api-keys?section=keys', models: 'https://platform.experientiallabs.ai/models', docs: 'https://platform.experientiallabs.ai/docs/core-loop', telemetry: 'https://platform.experientiallabs.ai/telemetry', mcp: 'https://modelcontextprotocol.io/docs/develop/connect-local-servers', credits: 'https://platform.experientiallabs.ai/credits' }; if (!urls[key]) throw new Error('Unknown link.'); return shell.openExternal(urls[key]); });
   handle('chat', input => {
     idle(); const prompt = text(input.prompt, 100000); const provider = store.get('providers', input.providerId); const agent = store.get('agents', input.agentId); const model = text(input.model, 200); const key = vault.get(provider);
-    if (!key && new URL(provider.baseUrl).protocol !== 'http:') throw new Error('Add an API key in Providers first.');
+    if (!key && new URL(provider.baseUrl).protocol !== 'http:') throw new Error(`No API key is available for ${provider.name}. Open Providers → Configure and paste your key again. Changing the URL clears the old key; without a secure keyring it lasts only for the current session.`);
     let conversation = input.conversationId ? store.get('conversations', input.conversationId) : null;
     const projectId = conversation ? conversation.projectId : input.projectId;
     const project = projectId ? store.data.projects.find(p => p.id === projectId) : null;
     if (projectId && !project) throw new Error('This project was removed. Open its folder and start a new conversation.');
+    const computerMode = input.computerMode === true;
+    if (computerMode && (provider.tools === false || agent.mode !== 'edit')) throw new Error('Computer mode needs an agent with editing access and a connection with agent tools enabled.');
     const externalTools = input.useMcp === true && provider.tools !== false && agent.mode === 'edit' ? mcp.toolSet() : [];
     if (!conversation) { conversation = { id: uid(), title: prompt.slice(0,65), projectId: project?.id || null, createdAt: new Date().toISOString(), messages: [] }; store.data.conversations.unshift(conversation); }
+    conversation.computerMode = computerMode;
     conversation.useMcp = externalTools.length > 0;
     repairHistory(conversation); conversation.providerId = provider.id; conversation.model = model; conversation.agentId = agent.id;
     conversation.messages.push({ role: 'user', content: prompt }); conversation.updatedAt = new Date().toISOString(); store.save();
     const controller = new AbortController(); active = { conversationId: conversation.id, controller };
     setImmediate(async () => {
       try {
-        await runAgent({ provider, key, model, agent, project, messages: [...conversation.messages], signal: controller.signal, approve, externalTools, emit: event => {
+        await runAgent({ provider, key, model, agent, project, messages: [...conversation.messages], signal: controller.signal, approve, externalTools, terminalRoot: computerMode ? app.getPath('home') : null, computer: computerMode && computer.status === 'connected' ? computer : null, prepareDesktop: async signal => { win.minimize(); await new Promise(resolve => setTimeout(resolve, 350)); signal.throwIfAborted(); }, emit: event => {
           if (event.type === 'message') { conversation.messages.push(event.message); if (event.usage) conversation.usage = event.usage; store.save(); }
           emit({ ...event, conversationId: conversation.id });
         } });
       } catch (error) { emit({ type: 'run-error', conversationId: conversation.id, text: controller.signal.aborted ? 'Stopped. You can continue with a follow-up.' : error.message }); }
-      finally { repairHistory(conversation); active = null; store.save(); emit({ type: 'done', conversationId: conversation.id, state: snapshot() }); }
+      finally { if(computerMode && !win.isDestroyed() && win.isMinimized()) win.restore(); repairHistory(conversation); active = null; store.save(); emit({ type: 'done', conversationId: conversation.id, state: snapshot() }); }
     });
     return { conversationId: conversation.id, state: snapshot() };
   });
@@ -142,9 +150,10 @@ function handlers() {
 app.whenReady().then(async () => {
   store = new Store(app.getPath('userData'), app.isPackaged ? null : path.resolve(__dirname, '..'));
   vault = new Vault(app.getPath('userData'), safeStorage);
+  computer = new Computer({onChange: value => { if(value.status !== 'connected' && active) active.controller.abort(); emit({type:'computer-state',computer:value}); }});
   mcp = new McpManager({ vault, cwd: app.getPath('home'), onChange: () => emit({ type: 'mcp-state', servers: store.data.mcpServers.map(s => ({ ...s, ...mcp.status(s.id), hasSecret: !!mcp.secret(s.id) })) }) });
   protocol.handle('studio', request => {
-    const url = new URL(request.url); const allowed = new Set(['/index.html', '/app.js', '/styles.css', '/connections.js', '/settings.js']);
+    const url = new URL(request.url); const allowed = new Set(['/index.html', '/app.js', '/styles.css', '/connections.js', '/settings.js', '/computer.js']);
     if (url.host !== 'app' || !allowed.has(url.pathname)) return new Response('Not found', { status: 404 });
     return net.fetch(pathToFileURL(path.join(__dirname, 'renderer', url.pathname.slice(1))).href);
   });
@@ -160,5 +169,5 @@ app.whenReady().then(async () => {
   if (process.env.AGENT_STUDIO_DESKTOP_TEST === '1') require('../scripts/desktop-scenario.cjs')({ app, win, store, snapshot }).catch(error => { console.error(error); app.exit(1); });
 }).catch(error => { console.error(error.message); app.exit(1); });
 let closing = false;
-app.on('before-quit', event => { if (mcp && !closing) { event.preventDefault(); closing = true; active?.controller.abort(); mcp.close().finally(() => app.quit()); } });
+app.on('before-quit', event => { if (mcp && !closing) { event.preventDefault(); closing = true; active?.controller.abort(); computer?.disconnect(); mcp.close().finally(() => app.quit()); } });
 app.on('window-all-closed', () => app.quit());

@@ -6,17 +6,20 @@
   <aside class="sidebar">
     <div class="brand"><span class="brandmark">a<span>✳</span></span><div>agent studio<small>YOUR LOCAL WORKSPACE</small></div></div>
     <button id="new-chat" class="new-chat"><span>＋</span> New conversation <kbd>Ctrl N</kbd></button>
-    <nav><button id="chat-mode" class="nav-item"><span>◌</span> Chat</button><button id="workspace-mode" class="nav-item active" data-view="workspace"><span>▦</span> Workspace</button><button class="nav-item" data-view="agents"><span>♧</span> Agents <span class="nav-count" id="agent-count">3</span></button><button class="nav-item" data-view="providers"><span>⌁</span> Providers</button><button class="nav-item" data-view="settings"><span>⚙</span> Settings</button></nav>
+    <nav><button id="chat-mode" class="nav-item"><span>◌</span> Chat</button><button id="computer-mode" class="nav-item"><span>▣</span> Computer <span class="nav-count">NEW</span></button><button id="workspace-mode" class="nav-item active" data-view="workspace"><span>▦</span> Workspace</button><button class="nav-item" data-view="agents"><span>♧</span> Agents <span class="nav-count" id="agent-count">3</span></button><button class="nav-item" data-view="providers"><span>⌁</span> Providers</button></nav>
     <div class="section-label">PROJECTS <button id="add-project" title="Open project folder" aria-label="Open project folder">＋</button></div>
     <div id="projects" class="project-list"></div>
     <button id="create-project" class="subtle sidebar-create">＋ Create a project</button>
     <div class="section-label recent-label">RECENT CONVERSATIONS</div><div id="conversations" class="conversation-list"></div>
+    <footer class="sidebar-footer">
+      <button class="nav-item" data-view="settings"><span>⚙</span> Settings</button>
     <div class="sidebar-bottom"><span class="local-dot"></span><div>Runs on your machine<small>Your projects stay in your control</small></div><span>↗</span></div>
+    </footer>
   </aside>
   <main>
     <header><div class="breadcrumb"><span id="header-view">Workspace</span><span>/</span><strong id="header-project">agent-studio</strong></div><div class="header-actions"><span class="local-pill"><i></i> Local</span><button class="icon-button" id="toggle-files" title="Toggle project files" aria-label="Toggle project files">▥</button><button class="icon-button" id="help" title="Getting started" aria-label="Getting started">?</button></div></header>
     <div id="workspace-view" class="workspace view">
-      <div class="conversation-area">
+      <div class="conversation-area"><div id="computer-panel" class="computer-panel" hidden></div>
         <div id="welcome" class="welcome">
           <div class="eyebrow"><span></span> A LITTLE LESS FRICTION. A LOT MORE BUILDING.</div>
           <h1 id="welcome-title">Your ideas.<br>Your models. <em>Your workspace.</em></h1>
@@ -36,5 +39,5 @@
   </main>
 </div>
 <dialog id="modal"><div id="modal-content"></div></dialog><div id="toast" class="toast" role="status" hidden></div>
-<script src="connections.js"></script><script src="settings.js"></script><script src="app.js"></script>
+<script src="connections.js"></script><script src="settings.js"></script><script src="computer.js"></script><script src="app.js"></script>
 </body></html>

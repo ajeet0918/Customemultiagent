@@ -1,7 +1,7 @@
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const api = (name, value) => window.studio.invoke(name, value);
-let state, projectId, conversationId = null, view = 'workspace', providerId, agentId = 'builder', model = '', busy = false, streamed = '', folder = '.', attached = null, currentApproval = null, runError = '', filesVisible = true, useMcp = false;
+let state, projectId, conversationId = null, view = 'workspace', providerId, agentId = 'builder', model = '', busy = false, streamed = '', folder = '.', attached = null, currentApproval = null, runError = '', filesVisible = true, useMcp = false, computerMode = false;
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => $('#toast').hidden = true, 6000); }
 function safely(fn) { return async (...args) => { try { return await fn(...args); } catch (error) { toast(error.message); } }; }
 function project() { return state.projects.find(p => p.id === projectId); }
@@ -75,12 +75,13 @@ function agentDialog(id) {
 }
 function approvalDialog(event) {
   currentApproval = event.id;
+  if(event.name.startsWith('computer_')) return computerApproval(event);
   if (event.name === 'mcp_call') {
     modal(`<div class="modal-heading"><div><div class="eyebrow">EXTERNAL TOOL APPROVAL</div><h2>${esc(event.toolName)}</h2></div><span class="tag">${esc(event.serverName)}</span></div><p>Review the arguments being sent to this MCP server.</p><pre class="command-review">${esc(JSON.stringify(event.args, null, 2))}</pre><div class="info-note">This external server may access data or perform actions with its own permissions. Only approve the requested operation if you trust it.</div><div class="modal-actions"><button id="deny-action" class="secondary">Decline</button><span></span><button id="allow-action" class="primary">Approve tool call</button></div>`);
     $('#allow-action').onclick = safely(() => api('approve', { id: event.id, accepted: true })); $('#deny-action').onclick = safely(() => api('approve', { id: event.id, accepted: false })); return;
   }
   const edit = event.name === 'write_file';
-  modal(`<div class="modal-heading"><div><div class="eyebrow">YOUR APPROVAL IS NEEDED</div><h2>${edit ? 'Review proposed file change' : 'Review shell command'}</h2></div><span class="tag">${edit ? 'File write' : 'Host command'}</span></div><p class="approval-path">${esc(edit ? event.args.path : event.projectPath)}</p>${edit ? `<div class="diff-columns"><div><h3>Current file</h3><pre>${esc(event.before ?? '(new file)')}</pre></div><div><h3>Proposed file</h3><pre>${esc(event.args.content)}</pre></div></div>` : `<p>${esc(event.args.reason)}</p><pre class="command-review">${esc(event.args.command)}</pre><div class="info-note">Runs as your Linux user in the project folder. This command can access files and the network outside the project. Review it before allowing.</div>`}<div class="modal-actions"><button id="deny-action" class="secondary">Decline</button><span></span><button id="allow-action" class="primary">${edit ? 'Approve change' : 'Run command'}</button></div>`);
+  modal(`<div class="modal-heading"><div><div class="eyebrow">YOUR APPROVAL IS NEEDED</div><h2>${edit ? 'Review proposed file change' : 'Review shell command'}</h2></div><span class="tag">${edit ? 'File write' : 'Host command'}</span></div><p class="approval-path">${esc(edit ? event.args.path : event.projectPath)}</p>${edit ? `<div class="diff-columns"><div><h3>Current file</h3><pre>${esc(event.before ?? '(new file)')}</pre></div><div><h3>Proposed file</h3><pre>${esc(event.args.content)}</pre></div></div>` : `<p>${esc(event.args.reason)}</p><pre class="command-review">${esc(event.args.command)}</pre><div class="info-note">Runs as your Linux user in the displayed working folder. This command can access files and the network outside the project. Review it before allowing.</div>`}<div class="modal-actions"><button id="deny-action" class="secondary">Decline</button><span></span><button id="allow-action" class="primary">${edit ? 'Approve change' : 'Run command'}</button></div>`);
   $('#allow-action').onclick = safely(() => api('approve', { id: event.id, accepted: true })); $('#deny-action').onclick = safely(() => api('approve', { id: event.id, accepted: false }));
 }
 function gettingStarted() {
@@ -91,10 +92,11 @@ async function send(event) {
   if (!provider() || !model) { showView('providers'); toast('Connect a provider and load models, or configure a model ID first.'); return; }
   const prompt = attached ? `${input}\n\nAttached file: ${attached.path}\n<file_content>\n${attached.content}\n</file_content>` : input;
   setBusy(true); streamed = ''; runError = ''; $('#run-status').textContent = 'Starting…';
-  try { const result = await api('chat', { prompt, providerId, agentId, model, projectId, conversationId, useMcp }); state = result.state; conversationId = result.conversationId; $('#prompt').value = ''; attached = null; $('#attachment').hidden = true; render(); }
+  try { const result = await api('chat', { prompt, providerId, agentId, model, projectId, conversationId, useMcp, computerMode }); state = result.state; conversationId = result.conversationId; $('#prompt').value = ''; attached = null; $('#attachment').hidden = true; render(); }
   catch (error) { setBusy(false); $('#run-status').textContent = ''; throw error; }
 }
 window.studio.onEvent(event => {
+  if (event.type === 'computer-state') { if(state){state.computer=event.computer;renderComputer();} return; }
   if (event.type === 'mcp-state') { if (state) { state.mcpServers = event.servers; if (view === 'settings' && settingsTab === 'mcp') renderSettings(); updateChatContext(); } return; }
   if (event.type === 'approval') return approvalDialog(event);
   if (event.type === 'approval-closed') { if (currentApproval === event.id) { currentApproval = null; $('#modal').close(); } return; }
@@ -108,11 +110,11 @@ window.studio.onEvent(event => {
 });
 document.addEventListener('click', safely(async event => {
   const el = event.target.closest('button'); if (!el) return; const d = el.dataset;
-  if (d.view) { if (d.view === 'workspace' && !project()) { if (busy) return toast('Stop the current run before switching modes.'); if (state.projects.length) resetChat(state.projects[0].id); else return addProject(false); } showView(d.view); }
+  if (d.view) { if(d.view==='workspace' && !busy) computerMode=false; if (d.view === 'workspace' && !project()) { if (busy) return toast('Stop the current run before switching modes.'); if (state.projects.length) resetChat(state.projects[0].id); else return addProject(false); } showView(d.view); }
   if (d.external) await api('external', d.external);
-  if (d.project) resetChat(d.project);
+  if (d.project) {computerMode=false;resetChat(d.project);}
   if (d.removeProject) { state = await api('remove-project', d.removeProject); if (projectId === d.removeProject) resetChat(state.projects[0]?.id); render(); }
-  if (d.conversation) { if (busy) return toast('Stop this run before switching conversations.'); conversationId = d.conversation; const c = conversation(); projectId = c.projectId; providerId = c.providerId; model = c.model; agentId = c.agentId; useMcp = c.useMcp === true; streamed = ''; attached = null; $('#attachment').hidden = true; $('#run-status').textContent = ''; showView('workspace'); render(); loadFiles(); }
+  if (d.conversation) { if (busy) return toast('Stop this run before switching conversations.'); conversationId = d.conversation; const c = conversation(); projectId = c.projectId; providerId = c.providerId; model = c.model; agentId = c.agentId; useMcp = c.useMcp === true; computerMode = c.computerMode === true; streamed = ''; attached = null; $('#attachment').hidden = true; $('#run-status').textContent = ''; showView('workspace'); render(); loadFiles(); }
   if (d.prompt) { $('#prompt').value = d.prompt; if (d.prompt.startsWith('Review')) agentId = state.agents.find(a => a.id === 'reviewer')?.id || agentId; else if (d.prompt.startsWith('Explore')) agentId = state.agents.find(a => a.id === 'planner')?.id || agentId; render(); $('#prompt').focus(); }
   if (d.chatPrompt) { $('#prompt').value = d.chatPrompt; $('#prompt').focus(); }
   if (d.useProvider) { if (busy) return toast('Stop the current run first.'); providerId = d.useProvider; model = provider()?.model || ''; agentId = state.agents.find(a => a.id === 'chat')?.id || agentId; resetChat(null); }
@@ -120,7 +122,7 @@ document.addEventListener('click', safely(async event => {
   if (d.editMcp) mcpDialog(d.editMcp);
   if (d.connectMcp) { if (busy) return toast('Stop the current run before connecting a server.'); reviewMcpConnection(d.connectMcp); }
   if (d.disconnectMcp) { state = await api('disconnect-mcp', d.disconnectMcp); render(); }
-  if (d.featureAction) { if (d.featureAction === 'start-chat') $('#chat-mode').click(); else if (d.featureAction === 'open-project') await addProject(false); else if (d.featureAction === 'mcp') { settingsTab = 'mcp'; renderSettings(); } else if (d.featureAction === 'help') gettingStarted(); else showView(d.featureAction); }
+  if (d.featureAction) { if (d.featureAction === 'computer') $('#computer-mode').click(); else if (d.featureAction === 'start-chat') $('#chat-mode').click(); else if (d.featureAction === 'open-project') await addProject(false); else if (d.featureAction === 'mcp') { settingsTab = 'mcp'; renderSettings(); } else if (d.featureAction === 'help') gettingStarted(); else showView(d.featureAction); }
   if (d.editProvider) providerDialog(d.editProvider);
   if (d.refreshProvider) { el.disabled = true; el.textContent = 'Loading…'; try { state = await api('models', d.refreshProvider); providerId = d.refreshProvider; model = provider()?.model || ''; render(); toast('Models loaded. Choose one in your conversation.'); } finally { el.disabled = false; el.textContent = '↻ Load models'; } }
   if (d.editAgent) agentDialog(d.editAgent);
@@ -139,8 +141,9 @@ document.addEventListener('click', safely(async event => {
   if (el.classList.contains('copy-code')) { await navigator.clipboard.writeText(el.closest('.code-block').querySelector('code').textContent); el.textContent = 'Copied'; }
 }));
 $('#new-chat').onclick = () => resetChat();
-$('#chat-mode').onclick = () => { if (busy) return toast('Stop the current run before switching modes.'); agentId = state.agents.find(a => a.id === 'chat')?.id || agentId; resetChat(null); };
-$('#context-select').onchange = event => resetChat(event.target.value || null);
+$('#computer-mode').onclick = () => { if(busy)return toast('Stop the current run before switching modes.'); computerMode=true;agentId=state.agents.find(a=>a.id==='chat')?.id || agentId;resetChat(null); };
+$('#chat-mode').onclick = () => { if (busy) return toast('Stop the current run before switching modes.'); computerMode=false;agentId = state.agents.find(a => a.id === 'chat')?.id || agentId; resetChat(null); };
+$('#context-select').onchange = event => {computerMode=false;resetChat(event.target.value || null);};
 $('#mcp-enabled').onchange = event => { useMcp = event.target.checked; updateChatContext(); };
 $('#new-model').onclick = () => providerDialog(undefined, 'single');
 $('#new-agent').onclick = () => agentDialog(); $('#new-provider').onclick = () => providerDialog();

@@ -78,6 +78,18 @@ module.exports = async ({app,win,store,snapshot}) => {
   }
   await click('[data-view=settings]');await click('[data-settings-tab=mcp]');await click(`[data-disconnect-mcp="${mcpId}"]`);await wait('document.querySelector(".mcp-card .tag").textContent === "disconnected"');
   await click('[data-settings-tab=features]');await screenshot('features-preview.png');
+  await click('#computer-mode');
+  assert.equal(await js('projectId'),null);
+  assert.equal(await js('document.querySelector("#computer-panel").hidden'),false);
+  assert.equal((await js('window.studio.invoke("state")')).computer.status,'disconnected');
+  await click('#connect-computer');assert.equal(await js('document.querySelector("#modal").open'),true);await click('[data-close]');
+  await fill('#prompt','Check the terminal without a project');await submit('#composer');await wait('!!document.querySelector("#allow-action") && document.querySelector("#modal").open');
+  assert.match(await js('document.querySelector(".command-review").textContent'),/printf studio-computer-test/);
+  await click('#allow-action');await wait('!busy');
+  assert.ok((await js('window.studio.invoke("state")')).conversations.some(c=>c.projectId===null && c.computerMode && c.messages.some(m=>m.role==='tool' && m.content.includes('studio-computer-test'))));
+  await click('#new-chat');await screenshot('computer-preview.png');
+  await click('#chat-mode');assert.equal(await js('document.querySelector("#computer-panel").hidden'),true);
+  await click('#workspace-mode');
   // Record default, key-free app views with real source files for documentation.
   const originalProjects=store.data.projects;store.data.projects=[{id:'preview',name:'agent-studio',path:path.resolve(__dirname,'..')}];
   await js('(async()=>{state=await window.studio.invoke("state");state.providers=state.providers.filter(p=>p.id==="experiential");state.conversations=[];state.mcpServers=[];state.agents=state.agents.filter(a=>a.name!=="Test Specialist");state.settings={...appearanceDefaults,theme:"light"};projectId="preview";conversationId=null;providerId="experiential";agentId="builder";model="";render();showView("workspace");await loadFiles();document.querySelector("#run-status").textContent="";document.querySelector("#toast").hidden=true;})()');
