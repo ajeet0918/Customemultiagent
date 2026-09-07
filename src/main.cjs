@@ -153,7 +153,7 @@ app.whenReady().then(async () => {
   computer = new Computer({onChange: value => { if(value.status !== 'connected' && active) active.controller.abort(); emit({type:'computer-state',computer:value}); }});
   mcp = new McpManager({ vault, cwd: app.getPath('home'), onChange: () => emit({ type: 'mcp-state', servers: store.data.mcpServers.map(s => ({ ...s, ...mcp.status(s.id), hasSecret: !!mcp.secret(s.id) })) }) });
   protocol.handle('studio', request => {
-    const url = new URL(request.url); const allowed = new Set(['/index.html', '/app.js', '/styles.css', '/connections.js', '/settings.js', '/computer.js']);
+    const url = new URL(request.url); const allowed = new Set(['/index.html', '/app.js', '/styles.css', '/studio-redesign.css', '/connections.js', '/settings.js', '/computer.js']);
     if (url.host !== 'app' || !allowed.has(url.pathname)) return new Response('Not found', { status: 404 });
     return net.fetch(pathToFileURL(path.join(__dirname, 'renderer', url.pathname.slice(1))).href);
   });

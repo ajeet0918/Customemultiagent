@@ -4,7 +4,15 @@ A Linux desktop workspace for coding with multiple AI models. Bring an Experient
 
 ![Agent Studio desktop](docs/desktop-preview.png)
 
-## New in 0.2.0
+## New in 0.4.0
+
+The desktop interface has been redesigned using local OpenDesign: neutral light and dark surfaces, teal actions, clearer typography, and consistent controls. Settings stays at the bottom-left while project and conversation lists scroll. Chat, Computer, Workspace and dialogs adapt to smaller windows and 125% interface scale.
+
+Settings tabs support keyboard navigation, dialogs have accessible names, and provider setup now explains the base URL and warns when changing it requires entering the key again. Existing preferences and conversations are preserved. Restart Agent Studio to load the updated interface.
+
+See [design and validation notes](docs/DESIGN.md).
+
+## Features added in 0.2.0
 
 - **Settings:** chat and code font sizes, reading font, interface scale, light/dark/system themes, reduced motion, send shortcut, and startup screen.
 - **Standalone chat:** a dedicated Chat entry and conversation context selector, with no project file or shell access.

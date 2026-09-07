@@ -32,7 +32,7 @@ module.exports = async ({app,win,store,snapshot}) => {
   await change('[name=theme]','dark');await change('[name=chatFontSize]','18');await change('[name=codeFontSize]','16');
   assert.equal(await js('getComputedStyle(document.querySelector(".appearance-preview p")).fontSize'),'18px');
   await submit('#settings-form');await wait('document.querySelector("#settings-save-status").textContent === "Saved on this device"');
-  const darkContrast=await js(`(()=>{const lum=s=>{const c=s.match(/[0-9.]+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4});return c[0]*0.2126+c[1]*0.7152+c[2]*0.0722};const a=lum(getComputedStyle(document.querySelector('#settings-view h1')).color),b=lum(getComputedStyle(document.querySelector('main')).backgroundColor);return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)})()`);
+  const darkContrast=await js(`(()=>{const lum=s=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const ctx=canvas.getContext('2d');ctx.fillStyle=s;ctx.fillRect(0,0,1,1);const c=Array.from(ctx.getImageData(0,0,1,1).data).slice(0,3).map(v=>{v/=255;return v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4});return c[0]*0.2126+c[1]*0.7152+c[2]*0.0722};const a=lum(getComputedStyle(document.querySelector('#settings-view h1')).color),b=lum(getComputedStyle(document.querySelector('main')).backgroundColor);return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)})()`);
   assert.ok(darkContrast>=4.5,'Dark theme text must remain readable.');
   await screenshot('settings-preview.png');
   await click('[data-settings-tab=chat]');await change('[name=sendShortcut]','mod-enter');await submit('#settings-form');await wait('document.querySelector("#settings-save-status").textContent === "Saved on this device"');
@@ -94,6 +94,7 @@ module.exports = async ({app,win,store,snapshot}) => {
   const originalProjects=store.data.projects;store.data.projects=[{id:'preview',name:'agent-studio',path:path.resolve(__dirname,'..')}];
   await js('(async()=>{state=await window.studio.invoke("state");state.providers=state.providers.filter(p=>p.id==="experiential");state.conversations=[];state.mcpServers=[];state.agents=state.agents.filter(a=>a.name!=="Test Specialist");state.settings={...appearanceDefaults,theme:"light"};projectId="preview";conversationId=null;providerId="experiential";agentId="builder";model="";render();showView("workspace");await loadFiles();document.querySelector("#run-status").textContent="";document.querySelector("#toast").hidden=true;})()');
   await screenshot('desktop-preview.png');await click('#chat-mode');await screenshot('chat-preview.png');
+  await require('./design-layout.cjs')({win,js,click});
   store.data.projects=originalProjects;assert.deepEqual(errors,[]);
   console.log('Desktop interaction passed: settings, standalone chat/model, logos, approvals, MCP, and source preview.');app.exit(0);
 };

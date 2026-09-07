@@ -1,16 +1,18 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><title>Agent Studio</title><link rel="stylesheet" href="styles.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><title>Agent Studio</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="studio-redesign.css"></head>
 <body>
 <div class="shell">
   <aside class="sidebar">
-    <div class="brand"><span class="brandmark">a<span>✳</span></span><div>agent studio<small>YOUR LOCAL WORKSPACE</small></div></div>
-    <button id="new-chat" class="new-chat"><span>＋</span> New conversation <kbd>Ctrl N</kbd></button>
-    <nav><button id="chat-mode" class="nav-item"><span>◌</span> Chat</button><button id="computer-mode" class="nav-item"><span>▣</span> Computer <span class="nav-count">NEW</span></button><button id="workspace-mode" class="nav-item active" data-view="workspace"><span>▦</span> Workspace</button><button class="nav-item" data-view="agents"><span>♧</span> Agents <span class="nav-count" id="agent-count">3</span></button><button class="nav-item" data-view="providers"><span>⌁</span> Providers</button></nav>
+    <div class="brand"><span class="brandmark">a<span>✳</span></span><div>agent studio<small>A SPACE TO THINK</small></div></div>
+    <button id="new-chat" class="new-chat"><span>＋</span> New chat <kbd>Ctrl N</kbd></button>
+    <nav><button id="chat-mode" class="nav-item"><span>◌</span> Chat</button><button id="computer-mode" class="nav-item"><span>▣</span> Computer</button><button id="workspace-mode" class="nav-item active" data-view="workspace"><span>▦</span> Workspace</button><button class="nav-item" data-view="agents"><span>♧</span> Agents <span class="nav-count" id="agent-count">3</span></button><button class="nav-item" data-view="providers"><span>⌁</span> Providers</button></nav>
+    <div class="sidebar-library">
     <div class="section-label">PROJECTS <button id="add-project" title="Open project folder" aria-label="Open project folder">＋</button></div>
     <div id="projects" class="project-list"></div>
     <button id="create-project" class="subtle sidebar-create">＋ Create a project</button>
     <div class="section-label recent-label">RECENT CONVERSATIONS</div><div id="conversations" class="conversation-list"></div>
+    </div>
     <footer class="sidebar-footer">
       <button class="nav-item" data-view="settings"><span>⚙</span> Settings</button>
     <div class="sidebar-bottom"><span class="local-dot"></span><div>Runs on your machine<small>Your projects stay in your control</small></div><span>↗</span></div>
@@ -21,7 +23,7 @@
     <div id="workspace-view" class="workspace view">
       <div class="conversation-area"><div id="computer-panel" class="computer-panel" hidden></div>
         <div id="welcome" class="welcome">
-          <div class="eyebrow"><span></span> A LITTLE LESS FRICTION. A LOT MORE BUILDING.</div>
+          <div class="eyebrow"><span></span> YOUR SPACE TO THINK</div>
           <h1 id="welcome-title">Your ideas.<br>Your models. <em>Your workspace.</em></h1>
           <p id="welcome-description">A focused place to build with AI. Bring a project, choose an agent,<br>and make something that matters.</p>
           <div class="quick-actions" id="project-quick-actions"><button data-prompt="Explore this project and explain its structure and how to run it."><span class="card-icon green">⌘</span><strong>Understand a project</strong><small>Find your way around the code</small><b>↗</b></button><button data-prompt="Help me implement a new feature. First inspect the project and ask what I want to build."><span class="card-icon peach">◇</span><strong>Build something new</strong><small>Take an idea to working code</small><b>↗</b></button><button data-prompt="Review this project for concrete bugs and missing tests. Read the relevant files and report prioritized findings."><span class="card-icon purple">◎</span><strong>Get a second look</strong><small>Review, refine, and improve</small><b>↗</b></button></div>
@@ -33,9 +35,9 @@
       </div>
       <aside id="file-panel" class="file-panel"><div class="file-heading"><span>PROJECT FILES</span><button id="refresh-files" title="Refresh files" aria-label="Refresh files">↻</button></div><div class="file-project"><span>▱</span><strong id="file-project-name"></strong><button id="reveal-project" title="Open in file manager" aria-label="Open in file manager">↗</button></div><div id="file-breadcrumb"></div><div id="files" class="files"></div><div class="file-footer">Only files your agent reads are sent<br>to your selected model provider.</div></aside>
     </div>
-    <section id="agents-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">YOUR TEAM, YOUR WAY</div><h1>An agent for every kind of work.</h1><p>Give each agent a purpose, instructions, and the right level of access.</p><button id="new-agent" class="primary">＋ Create agent</button></div><div id="agent-cards" class="agent-grid"></div><div class="info-note">Agents use the model selected in your conversation. Switch models anytime while keeping the same agent instructions.</div></section>
-    <section id="providers-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">BRING YOUR MODELS</div><h1>More choice. One workspace.</h1><p>Connect Experiential Labs or another OpenAI-compatible model server.</p><div class="heading-buttons"><button id="new-model" class="primary">＋ Add standalone model</button><button id="new-provider" class="secondary">＋ Add provider</button></div></div><div id="provider-cards"></div><div class="info-note"><strong>Using free models?</strong> Check current promotions and limits in the provider catalog before making requests. Model discovery does not confirm that usage is free. <button data-external="models" class="text-link">Open catalog ↗</button></div><div id="storage-note" class="info-note"></div></section>
-    <section id="settings-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">A WORKSPACE THAT FEELS LIKE YOU</div><h1>Your studio. Your preferences.</h1><p>Make it comfortable, connect your tools, and see what you can do.</p></div><div id="settings-tabs" class="settings-tabs" role="tablist" aria-label="Settings sections"></div><div id="settings-content"></div></section>
+    <section id="agents-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">YOUR TEAM, YOUR WAY</div><h1>Agents</h1><p>Give each agent a purpose, instructions, and the right level of access.</p><button id="new-agent" class="primary">＋ Create agent</button></div><div id="agent-cards" class="agent-grid"></div><div class="info-note">Agents use the model selected in your conversation. Switch models anytime while keeping the same agent instructions.</div></section>
+    <section id="providers-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">BRING YOUR MODELS</div><h1>Models & providers</h1><p>Connect Experiential Labs or another OpenAI-compatible model server.</p><div class="heading-buttons"><button id="new-model" class="primary">＋ Add standalone model</button><button id="new-provider" class="secondary">＋ Add provider</button></div></div><div id="provider-cards"></div><div class="info-note"><strong>Using free models?</strong> Check current promotions and limits in the provider catalog before making requests. Model discovery does not confirm that usage is free. <button data-external="models" class="text-link">Open catalog ↗</button></div><div id="storage-note" class="info-note"></div></section>
+    <section id="settings-view" class="page view" hidden><div class="page-heading"><div class="eyebrow">A WORKSPACE THAT FEELS LIKE YOU</div><h1>Settings</h1><p>Make it comfortable, connect your tools, and see what you can do.</p></div><div id="settings-tabs" class="settings-tabs" role="tablist" aria-label="Settings sections"></div><div id="settings-content"></div></section>
   </main>
 </div>
 <dialog id="modal"><div id="modal-content"></div></dialog><div id="toast" class="toast" role="status" hidden></div>

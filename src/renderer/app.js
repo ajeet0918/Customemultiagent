@@ -8,7 +8,7 @@ function project() { return state.projects.find(p => p.id === projectId); }
 function provider() { return state.providers.find(p => p.id === providerId); }
 function conversation() { return state.conversations.find(c => c.id === conversationId); }
 function closeModal() { if (currentApproval) return; $('#modal').close(); }
-function modal(html) { $('#modal-content').innerHTML = html; if (!$('#modal').open) $('#modal').showModal(); $('#modal-content').querySelector('[data-close]')?.addEventListener('click', closeModal); }
+function modal(html) { $('#modal-content').innerHTML = html; const heading=$('#modal-content h2');if(heading){heading.id='modal-title';$('#modal').setAttribute('aria-labelledby','modal-title');}else{$('#modal').removeAttribute('aria-labelledby');$('#modal').setAttribute('aria-label','Agent Studio dialog');}$('#modal-content').querySelectorAll('[data-close]').forEach(b=>{if(!b.getAttribute('aria-label'))b.setAttribute('aria-label','Close dialog');}); if (!$('#modal').open) $('#modal').showModal(); $('#modal-content').querySelector('[data-close]')?.addEventListener('click', closeModal); }
 function showView(next) {
   view = next; document.querySelectorAll('.view').forEach(el => el.hidden = el.id !== `${next}-view`);
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === next));
@@ -19,14 +19,14 @@ function render() {
   if (!state.providers.some(p => p.id === providerId)) providerId = state.providers[0]?.id;
   if (!state.agents.some(a => a.id === agentId)) agentId = state.agents[0]?.id;
   $('#agent-count').textContent = state.agents.length;
-  $('#projects').innerHTML = state.projects.map(p => `<div class="project-row ${p.id === projectId ? 'selected' : ''}"><button class="project-open" data-project="${esc(p.id)}"><span>▱</span>${esc(p.name)}</button><button class="project-remove" data-remove-project="${esc(p.id)}" title="Remove from workspace">×</button></div>`).join('') || '<p class="empty-small">Open a folder to get started.</p>';
+  $('#projects').innerHTML = state.projects.map(p => `<div class="project-row ${p.id === projectId ? 'selected' : ''}"><button class="project-open" data-project="${esc(p.id)}"><span>▱</span>${esc(p.name)}</button><button class="project-remove" data-remove-project="${esc(p.id)}" title="Remove from workspace" aria-label="Remove project">×</button></div>`).join('') || '<p class="empty-small">Open a folder to get started.</p>';
   $('#conversations').innerHTML = state.conversations.slice(0,30).map(c => `<button class="conversation-link ${c.id === conversationId ? 'selected' : ''}" data-conversation="${esc(c.id)}"><span>◌</span>${esc(c.title)}</button>`).join('') || '<p class="empty-small">Your next idea starts here.</p>';
   $('#agent-select').innerHTML = state.agents.map(a => `<option value="${esc(a.id)}">${esc(a.icon)} ${esc(a.name)}</option>`).join(''); $('#agent-select').value = agentId;
   $('#provider-select').innerHTML = state.providers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join(''); $('#provider-select').value = providerId || '';
   renderModels();
   const agent = state.agents.find(a => a.id === agentId);
   $('#permission-caption').textContent = provider()?.tools === false ? 'Chat only · tools disabled for this provider' : agent?.mode === 'read' ? 'Read-only agent · no edits or commands' : 'Edits and commands ask for approval';
-  $('#connect-banner').hidden = !!provider()?.hasKey;
+  $('#connect-banner').hidden = !!provider()?.hasKey || /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/.test(provider()?.baseUrl || '');
   $('#file-project-name').textContent = project()?.name || 'No project selected';
   $('#agent-cards').innerHTML = state.agents.map(a => `<article class="agent-card"><div class="agent-card-top"><span class="agent-avatar">${esc(a.icon)}</span><span class="tag">${a.mode === 'edit' ? 'Approval required' : 'Read only'}</span></div><h2>${esc(a.name)}</h2><p>${esc(a.description)}</p><div class="agent-instructions">${esc(a.system)}</div><div class="card-footer"><button class="text-link" data-use-agent="${esc(a.id)}">Start a conversation ↗</button><button class="secondary" data-edit-agent="${esc(a.id)}">Edit agent</button></div></article>`).join('');
   renderProviders();
@@ -131,7 +131,7 @@ document.addEventListener('click', safely(async event => {
     if (d.directory === 'true') return loadFiles(d.file);
     const content = await api('read-file', { projectId, relative: d.file });
     modal(`<div class="modal-heading"><h2>${esc(d.file)}</h2><button data-close class="icon-button">×</button></div><pre class="file-preview">${esc(content)}</pre><div class="modal-actions"><small>Attach to send this file with your next message.</small><span></span><button class="primary" id="attach-file">Attach to message</button></div>`);
-    $('#attach-file').onclick = () => { attached = { path: d.file, content }; $('#attachment').hidden = false; $('#attachment').innerHTML = `≡ ${esc(d.file)} <button id="detach-file">×</button>`; closeModal(); showView('workspace'); $('#prompt').focus(); };
+    $('#attach-file').onclick = () => { attached = { path: d.file, content }; $('#attachment').hidden = false; $('#attachment').innerHTML = `≡ ${esc(d.file)} <button id="detach-file" aria-label="Remove attachment">×</button>`; closeModal(); showView('workspace'); $('#prompt').focus(); };
   }
   if (el.id === 'detach-file') { attached = null; $('#attachment').hidden = true; }
   if (el.id === 'parent-folder') await loadFiles(folder.includes('/') ? folder.slice(0, folder.lastIndexOf('/')) : '.');
@@ -163,3 +163,5 @@ $('#stop').onclick = safely(() => api('stop'));
 $('#modal').addEventListener('cancel', event => { if (currentApproval) { event.preventDefault(); toast('Approve or decline the action, or stop the run.'); } });
 document.addEventListener('keydown', event => { if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); resetChat(); } });
 safely(async () => { state = await api('state'); projectId = state.settings.startScreen === 'workspace' ? state.projects[0]?.id || null : null; providerId = state.providers[0]?.id; agentId = projectId ? state.agents[0]?.id : state.agents.find(a => a.id === 'chat')?.id || state.agents[0]?.id; render(); await loadFiles(); if (new URLSearchParams(location.search).has('setup')) { showView('providers'); providerDialog(providerId); } })();
+
+$('#settings-tabs').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const tabs=Array.from(document.querySelectorAll('[data-settings-tab]'));let index=tabs.findIndex(t=>t.dataset.settingsTab===settingsTab);index=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;event.preventDefault();settingsTab=tabs[index].dataset.settingsTab;renderSettings();document.querySelector(`[data-settings-tab="${settingsTab}"]`).focus();});
